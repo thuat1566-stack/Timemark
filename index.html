@@ -85,6 +85,12 @@ canvas:active { cursor: grabbing; }
     <input type="checkbox" id="swapLogoColor">
 </div>
 
+<!-- Thêm màu cho địa chỉ -->
+<div class="color-row">
+    <label>🎨 Màu địa chỉ:</label>
+    <input type="color" id="addrColor" value="#FFFFFF">
+</div>
+
 <!-- Ghi chú dọc (bên phải) -->
 <div class="row">
     <label>📝 Ghi chú dọc (phải):</label>
@@ -154,8 +160,13 @@ canvas:active { cursor: grabbing; }
 
 <!-- Các thanh trượt điều chỉnh -->
 <div class="slider-row">
-    <label>📏 Cỡ chữ trái (địa chỉ):</label>
+    <label>📏 Cỡ chữ dòng trên (địa chỉ):</label>
     <input type="range" id="leftScale" min="0.7" max="1.5" value="1.0" step="0.01">
+</div>
+<!-- THANH TRƯỢT MỚI: cỡ chữ dòng dưới của địa chỉ -->
+<div class="slider-row">
+    <label>📏 Cỡ chữ dòng dưới (địa chỉ):</label>
+    <input type="range" id="bottomScale" min="0.7" max="1.5" value="1.0" step="0.01">
 </div>
 <div class="slider-row">
     <label>🔢 Cỡ giờ:</label>
@@ -518,7 +529,9 @@ window.saveSettings = function() {
         logoColor1: document.getElementById('logoColor1').value,
         logoColor2: document.getElementById('logoColor2').value,
         swapLogoColor: document.getElementById('swapLogoColor').checked,
+        addrColor: document.getElementById('addrColor').value,
         leftScale: parseFloat(document.getElementById('leftScale').value),
+        bottomScale: parseFloat(document.getElementById('bottomScale').value), // lưu cỡ dòng dưới
         timeScale: parseFloat(document.getElementById('timeScale').value),
         dateScale: parseFloat(document.getElementById('dateScale').value),
         dayScale: parseFloat(document.getElementById('dayScale').value),
@@ -532,7 +545,7 @@ window.saveSettings = function() {
         verticalNote: document.getElementById('verticalNote').value,
         noteFontSize: parseFloat(document.getElementById('noteFontSize').value),
         notePadding: parseFloat(document.getElementById('notePadding').value),
-        maxLineLength: parseInt(document.getElementById('maxLineLength').value), // lưu thêm
+        maxLineLength: parseInt(document.getElementById('maxLineLength').value),
         leftBlockXDp: leftBlockX / scale,
         leftBlockYDp: leftBlockY / scale,
         gpsText: gpsText,
@@ -571,7 +584,9 @@ function loadSettingsAndDraw() {
         if (s.logoColor1) document.getElementById('logoColor1').value = s.logoColor1;
         if (s.logoColor2) document.getElementById('logoColor2').value = s.logoColor2;
         document.getElementById('swapLogoColor').checked = !!s.swapLogoColor;
+        if (s.addrColor) document.getElementById('addrColor').value = s.addrColor;
         if (s.leftScale !== undefined) document.getElementById('leftScale').value = s.leftScale;
+        if (s.bottomScale !== undefined) document.getElementById('bottomScale').value = s.bottomScale; // khôi phục cỡ dòng dưới
         if (s.timeScale !== undefined) document.getElementById('timeScale').value = s.timeScale;
         if (s.dateScale !== undefined) document.getElementById('dateScale').value = s.dateScale;
         if (s.dayScale !== undefined) document.getElementById('dayScale').value = s.dayScale;
@@ -585,7 +600,7 @@ function loadSettingsAndDraw() {
         if (s.verticalNote !== undefined) document.getElementById('verticalNote').value = s.verticalNote;
         if (s.noteFontSize !== undefined) document.getElementById('noteFontSize').value = s.noteFontSize;
         if (s.notePadding !== undefined) document.getElementById('notePadding').value = s.notePadding;
-        if (s.maxLineLength !== undefined) document.getElementById('maxLineLength').value = s.maxLineLength; // khôi phục
+        if (s.maxLineLength !== undefined) document.getElementById('maxLineLength').value = s.maxLineLength;
         if (s.gpsText) gpsText = s.gpsText;
 
         if (isLoaded && s.leftBlockXDp !== undefined && s.leftBlockYDp !== undefined) {
@@ -625,6 +640,7 @@ function draw() {
     const logoFontItalic = document.getElementById('logoFontItalic').checked;
 
     const leftScale = parseFloat(document.getElementById('leftScale').value);
+    const bottomScale = parseFloat(document.getElementById('bottomScale').value); // cỡ dòng dưới
     const timeScale = parseFloat(document.getElementById('timeScale').value);
     const dateScale = parseFloat(document.getElementById('dateScale').value);
     const dayScale = parseFloat(document.getElementById('dayScale').value);
@@ -633,9 +649,12 @@ function draw() {
     const barHeightFactor = parseFloat(document.getElementById('barHeight').value);
     const addrMarginTop = parseFloat(document.getElementById('addrMargin').value) * scale;
     const swapLogo = document.getElementById('swapLogoColor').checked;
-    const customLogo = document.getElementById('logoText').value.trim(); // có thể rỗng
+    const customLogo = document.getElementById('logoText').value.trim();
     const logoColor1 = document.getElementById('logoColor1').value;
     const logoColor2 = document.getElementById('logoColor2').value;
+
+    // Màu địa chỉ
+    const addrColor = document.getElementById('addrColor').value;
 
     const textOpacity = parseFloat(document.getElementById('textOpacity').value);
     const shadowOpacity = parseFloat(document.getElementById('shadowOpacity').value);
@@ -648,14 +667,14 @@ function draw() {
     const timeFontSize = 100 * scale * timeScale;
     const dateFontSize = 30 * scale * dateScale;
     const dayFontSize = 26 * scale * dayScale;
-    const addrFontSize = 24 * scale * leftScale;
+    const addrFontSizeTop = 24 * scale * leftScale;   // dòng trên
+    const addrFontSizeBottom = 24 * scale * bottomScale; // dòng dưới
     const logoFontSize = 28 * scale * rightScale;
     const subFontSize = 20 * scale * rightScale;
 
     const timeColor = '#FFFFFF';
     const dateColor = '#FFFFFF';
     const dayColor = '#E6FFFFFF';
-    const addrColor = '#D9FFFFFF';
     const subColor = '#CCFFFFFF';
     const barColor = '#FFC107';
 
@@ -667,7 +686,8 @@ function draw() {
     const timeFont = `${timeFontStyle}${timeFontWeight} ${timeFontSize}px ${timeFontFamily}`;
     const dateFont = `${fontStyle}${fontWeight} ${dateFontSize}px ${fontFamily}`;
     const dayFont = `${fontStyle}${fontWeight} ${dayFontSize}px ${fontFamily}`;
-    const addrFont = `${fontStyle}${fontWeight} ${addrFontSize}px ${fontFamily}`;
+    const addrFontTop = `${fontStyle}${fontWeight} ${addrFontSizeTop}px ${fontFamily}`;
+    const addrFontBottom = `${fontStyle}${fontWeight} ${addrFontSizeBottom}px ${fontFamily}`;
     const logoFont = `${logoFontStyle}${logoFontWeight} ${logoFontSize}px ${fontFamily}`;
     const subFont = `${fontStyle}${fontWeight} ${subFontSize}px ${fontFamily}`;
     const noteFont = `${fontStyle}${fontWeight} ${noteFontSize}px ${fontFamily}`;
@@ -750,13 +770,15 @@ function draw() {
     ctx.fillStyle = setFillStyleWithOpacity(dayColor, textOpacity * 0.9);
     ctx.fillText(dayStr, rightColX, dayY);
 
-    // Địa chỉ
+    // Địa chỉ - dòng trên dùng leftScale, dòng dưới dùng bottomScale
     const addrY1 = dayY + dayDescent + addrMarginTop;
-    ctx.font = addrFont;
+    ctx.font = addrFontTop;
     ctx.fillStyle = setFillStyleWithOpacity(addrColor, textOpacity * 0.85);
     ctx.fillText(addrLines[0], leftBlockX, addrY1);
+
     if (addrLines[1]) {
-        const addrY2 = addrY1 + addrFontSize + 4 * scale;
+        const addrY2 = addrY1 + addrFontSizeTop + 4 * scale; // vẫn cộng thêm khoảng cách dựa trên cỡ dòng trên (có thể điều chỉnh sau)
+        ctx.font = addrFontBottom;
         ctx.fillText(addrLines[1], leftBlockX, addrY2);
     }
 
@@ -905,7 +927,9 @@ document.getElementById('logoText').addEventListener('input', draw);
 document.getElementById('logoColor1').addEventListener('input', draw);
 document.getElementById('logoColor2').addEventListener('input', draw);
 document.getElementById('swapLogoColor').addEventListener('change', draw);
+document.getElementById('addrColor').addEventListener('input', draw);
 document.getElementById('leftScale').addEventListener('input', draw);
+document.getElementById('bottomScale').addEventListener('input', draw); // thêm sự kiện cho cỡ dòng dưới
 document.getElementById('timeScale').addEventListener('input', draw);
 document.getElementById('dateScale').addEventListener('input', draw);
 document.getElementById('dayScale').addEventListener('input', draw);
