@@ -8,7 +8,7 @@ window.searchMap = async function() {
     const status = document.getElementById('status');
     status.innerText = '🔍 Đang tìm kiếm với OpenCage...';
 
-    // 👇 Dùng API key của bạn (lấy từ ảnh)
+    // 👇 API key chính xác của bạn (lấy từ ảnh IMG_2804)
     const API_KEY = '0998742581b2444aafd5499e783a3588';
     const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(address)}&key=${API_KEY}&limit=1&language=vi`;
 
