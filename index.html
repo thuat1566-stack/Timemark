@@ -33,7 +33,7 @@ body::before {
     z-index: 0;
 }
 
-.controls, .canvas-container {
+.controls, .canvas-container, #map, .footer-logo {
     position: relative;
     z-index: 2;
 }
@@ -190,7 +190,6 @@ canvas:active {
     border-radius: 12px;
     margin-top: 15px;
     border: 1px solid #f5b400;
-    z-index: 1;
 }
 
 .map-controls {
@@ -211,6 +210,30 @@ canvas:active {
     color: #f5b400;
     font-size: 13px;
     margin-top: 10px;
+}
+
+/* Logo cố định cuối trang */
+.footer-logo {
+    text-align: center;
+    margin: 30px auto 0;
+    padding: 20px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 16px;
+    max-width: 900px;
+    backdrop-filter: blur(4px);
+    border: 1px solid #f5b400;
+}
+.footer-logo-display {
+    margin-top: 10px;
+    min-height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.footer-logo-display img {
+    max-width: 100%;
+    max-height: 120px;
+    object-fit: contain;
 }
 </style>
 </head>
@@ -391,6 +414,13 @@ canvas:active {
 <div id="map"></div>
 <div class="map-controls">
     <button id="currentLocationBtn" onclick="getCurrentLocationOnMap()">📍 Vị trí hiện tại</button>
+</div>
+
+<!-- Logo cố định cuối trang (đã đặt sẵn link ảnh) -->
+<div class="footer-logo">
+    <div class="footer-logo-display">
+        <img src="https://i.postimg.cc/1nM7572x/IMG-2825.jpg" alt="Logo cố định" style="max-width: 100%; max-height: 120px; object-fit: contain;">
+    </div>
 </div>
 
 <script>
@@ -1114,8 +1144,7 @@ canvas.addEventListener('touchcancel', onTouchCancel);
 // Khởi tạo bản đồ
 initMap();
 
-// Khởi tạo ảnh mặc định từ URL nếu chưa có ảnh được upload
-// Để tránh ghi đè lưu cài đặt, ta chỉ tải ảnh mặc định nếu chưa có ảnh nào
+// Khởi tạo ảnh mặc định nếu chưa có ảnh được upload
 if (!img) {
     const defaultImageUrl = 'https://i.postimg.cc/Bt1xMVQ8/IMG-2821.jpg';
     const defaultImg = new Image();
