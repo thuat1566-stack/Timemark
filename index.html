@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Đức Thuật Pro - Ẩn/Hiện tọa độ GPS</title>
+<title>Đức Thuật Pro - Bản đồ OSM + Vị trí hiện tại (Fix iPhone)</title>
 <!-- Leaflet CSS + JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -34,7 +34,7 @@ canvas:active { cursor: grabbing; }
 <body>
 
 <div class="controls">
-<h3 style="margin:0 0 15px 0; color:#f5b400; letter-spacing: 1px;">TOOL ĐỨC THUẬT PRO (ẨN/HIỆN TỌA ĐỘ GPS)</h3>
+<h3 style="margin:0 0 15px 0; color:#f5b400; letter-spacing: 1px;">TOOL ĐỨC THUẬT PRO (FIX IPHONE)</h3>
 
 <div class="row">
     <label>📷 Chọn ảnh nền:</label>
@@ -110,7 +110,7 @@ canvas:active { cursor: grabbing; }
     <input type="text" id="verticalNote" value="XN43CPD9GYU3CA Timemark Verified" style="flex:1" placeholder="Nhập nội dung">
 </div>
 
-<!-- Font chữ và kiểu -->
+<!-- Font chữ và kiểu (giữ nguyên) -->
 <div class="row">
     <label>🔤 Font địa chỉ/ngày:</label>
     <select id="fontSelect" style="flex:1">
@@ -236,6 +236,55 @@ let isLongPressTriggered = false;
 let map;
 let currentMarker = null;
 
+// Helper: fetch với timeout
+function fetchWithTimeout(url, options, timeout = 10000) {
+    return Promise.race([
+        fetch(url, options),
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Request timeout')), timeout)
+        )
+    ]);
+}
+
+// Hàm reverse geocoding dùng chung (có xử lý lỗi)
+async function reverseGeocode(lat, lng) {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    const userAgent = navigator.userAgent; // Dùng UA thực tế của trình duyệt
+    try {
+        const response = await fetchWithTimeout(url, {
+            headers: { 'User-Agent': userAgent }
+        }, 8000);
+        const data = await response.json();
+        if (data && data.display_name) {
+            return data.display_name;
+        } else {
+            throw new Error('No display_name in response');
+        }
+    } catch (err) {
+        console.warn('Reverse geocoding error:', err);
+        return null;
+    }
+}
+
+// Hàm cập nhật bản đồ và lấy địa chỉ
+async function updateMapLocation(lat, lng) {
+    if (!map) return;
+    map.setView([lat, lng], 15);
+    if (currentMarker) map.removeLayer(currentMarker);
+    currentMarker = L.marker([lat, lng]).addTo(map).bindPopup(`Tọa độ: ${lat}, ${lng}`).openPopup();
+
+    // Lấy địa chỉ
+    const address = await reverseGeocode(lat, lng);
+    if (address) {
+        const wrapped = wrapAddress(address, getMaxLineLength());
+        document.getElementById('address').value = wrapped;
+        document.getElementById('status').innerHTML = `📍 Đã cập nhật: ${address}`;
+    } else {
+        document.getElementById('status').innerHTML = `📍 Đã chọn tọa độ: ${lat}, ${lng} (không lấy được địa chỉ)`;
+    }
+    if (isLoaded) draw();
+}
+
 // ------------------- HÀM THỜI GIAN -------------------
 function updateCurrentTime() {
     if (staticTimeEnabled) {
@@ -351,34 +400,7 @@ window.getCurrentPosition = function() {
     );
 };
 
-// Hàm cập nhật bản đồ (di chuyển, marker, reverse geocode)
-function updateMapLocation(lat, lng) {
-    if (!map) return;
-    map.setView([lat, lng], 15);
-    if (currentMarker) map.removeLayer(currentMarker);
-    currentMarker = L.marker([lat, lng]).addTo(map).bindPopup(`Vị trí: ${lat}, ${lng}`).openPopup();
-    
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
-        headers: { 'User-Agent': 'DucThuatTool/1.0 (your-email@example.com)' }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data && data.display_name) {
-            const fullAddr = data.display_name;
-            const wrapped = wrapAddress(fullAddr, getMaxLineLength());
-            document.getElementById('address').value = wrapped;
-            document.getElementById('status').innerHTML = `📍 Đã cập nhật: ${fullAddr}`;
-            if (isLoaded) draw();
-        } else {
-            document.getElementById('status').innerHTML = `📍 Đã chọn tọa độ: ${lat}, ${lng} (không lấy được địa chỉ)`;
-        }
-    })
-    .catch(err => {
-        console.warn("Reverse geocoding error", err);
-        document.getElementById('status').innerHTML = `📍 Đã chọn tọa độ: ${lat}, ${lng} (lỗi lấy địa chỉ)`;
-    });
-}
-
+// Nút Vị trí hiện tại trên bản đồ
 window.getCurrentLocationOnMap = function() {
     if (!navigator.geolocation) { alert("Trình duyệt không hỗ trợ GPS."); return; }
     navigator.geolocation.getCurrentPosition(
@@ -396,13 +418,14 @@ window.getCurrentLocationOnMap = function() {
 };
 
 // Tìm kiếm địa chỉ (Nominatim)
-window.searchMap = function() {
+window.searchMap = async function() {
     const address = document.getElementById('mapSearch').value;
     if (!address) return;
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
-    fetch(url, { headers: { 'User-Agent': 'DucThuatTool/1.0 (your-email@example.com)' } })
-    .then(response => response.json())
-    .then(data => {
+    const userAgent = navigator.userAgent;
+    try {
+        const response = await fetchWithTimeout(url, { headers: { 'User-Agent': userAgent } }, 8000);
+        const data = await response.json();
         if (data && data.length > 0) {
             const result = data[0];
             const lat = parseFloat(result.lat).toFixed(6);
@@ -418,8 +441,9 @@ window.searchMap = function() {
             if (isLoaded) draw();
             if (map) updateMapLocation(lat, lng);
         } else { alert('Không tìm thấy địa điểm nào.'); }
-    })
-    .catch(err => { alert('Lỗi kết nối đến Nominatim: ' + err.message); });
+    } catch (err) {
+        alert('Lỗi kết nối đến Nominatim: ' + err.message);
+    }
 };
 
 // ------------------- BẢN ĐỒ OSM -------------------
@@ -429,34 +453,26 @@ function initMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    map.on('click', function(e) {
+    map.on('click', async function(e) {
         const lat = e.latlng.lat.toFixed(6);
         const lng = e.latlng.lng.toFixed(6);
         const coordText = `${lat}, ${lng}`;
+        
         document.getElementById('manualCoord').value = coordText;
         gpsText = coordText;
+        
         if (currentMarker) map.removeLayer(currentMarker);
         currentMarker = L.marker([lat, lng]).addTo(map).bindPopup(`Tọa độ: ${coordText}`).openPopup();
         
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
-            headers: { 'User-Agent': 'DucThuatTool/1.0 (your-email@example.com)' }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data && data.display_name) {
-                const fullAddr = data.display_name;
-                const wrapped = wrapAddress(fullAddr, getMaxLineLength());
-                document.getElementById('address').value = wrapped;
-                document.getElementById('status').innerHTML = `📍 Đã chọn: ${fullAddr}`;
-                if (isLoaded) draw();
-            } else {
-                document.getElementById('status').innerHTML = `📍 Đã chọn tọa độ: ${coordText} (không lấy được địa chỉ)`;
-            }
-        })
-        .catch(err => {
-            console.warn("Reverse geocoding error", err);
-            document.getElementById('status').innerHTML = `📍 Đã chọn tọa độ: ${coordText} (lỗi lấy địa chỉ)`;
-        });
+        const address = await reverseGeocode(lat, lng);
+        if (address) {
+            const wrapped = wrapAddress(address, getMaxLineLength());
+            document.getElementById('address').value = wrapped;
+            document.getElementById('status').innerHTML = `📍 Đã chọn: ${address}`;
+        } else {
+            document.getElementById('status').innerHTML = `📍 Đã chọn tọa độ: ${coordText} (không lấy được địa chỉ)`;
+        }
+        if (isLoaded) draw();
     });
 }
 
@@ -591,7 +607,7 @@ function loadSettingsAndDraw() {
     } catch(e) { console.warn(e); }
 }
 
-// ------------------- VẼ CANVAS -------------------
+// ------------------- VẼ CANVAS (giữ nguyên, chỉ thêm điều kiện hiển thị GPS) -------------------
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!isLoaded || !img) {
