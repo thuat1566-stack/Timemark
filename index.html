@@ -10,22 +10,155 @@
 <!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Montserrat:wght@400;500;700;800&family=Roboto:wght@400;500;700&family=Bebas+Neue&family=Lato:wght@400;700&display=swap" rel="stylesheet">
 <style>
-body { font-family: 'Inter', sans-serif; background: #111; color: white; text-align: center; padding: 10px; margin: 0; position: relative; }
-.controls { background: #1e1e1e; border-radius: 16px; padding: 20px; max-width: 900px; margin: 0 auto 15px; border: 1px solid #333; }
-.row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; justify-content: center; align-items: center; }
-label { color: #f5b400; font-weight: bold; font-size: 14px; min-width: 120px; text-align: left; }
-input, textarea, select, button { padding: 12px; border-radius: 12px; border: 1px solid #444; background: #2a2a2a; color: white; font-size: 14px; outline: none; }
-textarea { width: 100%; border-color: #f5b400; min-height: 60px; font-family: 'Inter', sans-serif; }
-button { background: #f5b400; color: #000; font-weight: 900; border: none; cursor: pointer; transition: 0.3s; }
-button:active { transform: scale(0.95); }
-.slider-row { display: flex; align-items: center; gap: 10px; background: #252525; padding: 10px 15px; border-radius: 30px; margin: 8px 0; }
-.slider-row input { flex: 1; accent-color: #f5b400; }
-.checkbox-row { display: flex; align-items: center; gap: 10px; background: #252525; padding: 10px 15px; border-radius: 30px; margin: 8px 0; }
-.checkbox-row label { min-width: auto; }
-.color-row { display: flex; align-items: center; gap: 15px; background: #252525; padding: 10px 15px; border-radius: 30px; margin: 8px 0; }
-.canvas-container { position: relative; display: inline-block; max-width: 100%; margin-top: 10px; }
-canvas { max-width: 100%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); touch-action: none; cursor: grab; display: block; margin: 0 auto; }
-canvas:active { cursor: grabbing; }
+/* Ảnh nền trang */
+body {
+    font-family: 'Inter', sans-serif;
+    background: url('https://i.postimg.cc/Bt1xMVQ8/IMG-2821.jpg') no-repeat center center fixed;
+    background-size: cover;
+    margin: 0;
+    padding: 10px;
+    position: relative;
+}
+
+/* Lớp phủ mờ để các điều khiển dễ đọc */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.controls, .canvas-container {
+    position: relative;
+    z-index: 2;
+}
+
+.controls {
+    background: rgba(30, 30, 30, 0.9);
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto 15px;
+    border: 1px solid #f5b400;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+    justify-content: center;
+    align-items: center;
+}
+
+label {
+    color: #f5b400;
+    font-weight: bold;
+    font-size: 14px;
+    min-width: 120px;
+    text-align: left;
+}
+
+input, textarea, select, button {
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+textarea {
+    width: 100%;
+    border-color: #f5b400;
+    min-height: 60px;
+    font-family: 'Inter', sans-serif;
+}
+
+button {
+    background: #f5b400;
+    color: #000;
+    font-weight: 900;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #252525cc;
+    padding: 10px 15px;
+    border-radius: 30px;
+    margin: 8px 0;
+}
+
+.slider-row input {
+    flex: 1;
+    accent-color: #f5b400;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #252525cc;
+    padding: 10px 15px;
+    border-radius: 30px;
+    margin: 8px 0;
+}
+
+.checkbox-row label {
+    min-width: auto;
+}
+
+.color-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #252525cc;
+    padding: 10px 15px;
+    border-radius: 30px;
+    margin: 8px 0;
+}
+
+.canvas-container {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    margin-top: 10px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+canvas {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    touch-action: none;
+    cursor: grab;
+    display: block;
+    margin: 0 auto;
+}
+
+canvas:active {
+    cursor: grabbing;
+}
+
 .scroll-top-btn {
     position: absolute;
     top: 15px;
@@ -46,11 +179,39 @@ canvas:active { cursor: grabbing; }
     justify-content: center;
     transition: 0.2s;
 }
-.scroll-top-btn:active { transform: scale(0.9); }
-#map { height: 300px; width: 100%; border-radius: 12px; margin-top: 15px; border: 1px solid #f5b400; z-index: 1; }
-.map-controls { display: flex; gap: 10px; margin-top: 8px; justify-content: flex-end; }
-.map-controls button { background: #0288d1; color: white; padding: 8px 16px; font-size: 14px; }
-#status { color: #f5b400; font-size: 13px; margin-top: 10px; }
+
+.scroll-top-btn:active {
+    transform: scale(0.9);
+}
+
+#map {
+    height: 300px;
+    width: 100%;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 1px solid #f5b400;
+    z-index: 1;
+}
+
+.map-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    justify-content: flex-end;
+}
+
+.map-controls button {
+    background: #0288d1;
+    color: white;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+#status {
+    color: #f5b400;
+    font-size: 13px;
+    margin-top: 10px;
+}
 </style>
 </head>
 <body>
@@ -132,7 +293,7 @@ canvas:active { cursor: grabbing; }
     <input type="text" id="verticalNote" value="XN43CPD9GYU3CA Timemark Verified" style="flex:1" placeholder="Nhập nội dung">
 </div>
 
-<!-- Font chữ và kiểu (giữ nguyên) -->
+<!-- Font chữ và kiểu -->
 <div class="row">
     <label>🔤 Font địa chỉ/ngày:</label>
     <select id="fontSelect" style="flex:1">
@@ -633,7 +794,7 @@ function loadSettingsAndDraw() {
     } catch(e) { console.warn(e); }
 }
 
-// ------------------- VẼ CANVAS (giữ nguyên) -------------------
+// ------------------- VẼ CANVAS -------------------
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!isLoaded || !img) {
@@ -837,32 +998,6 @@ window.downloadImage = function(format) {
     link.click();
 };
 
-// Long press vẫn dùng PNG (giữ nguyên)
-window.downloadImagePNG = function() {
-    downloadImage('png');
-};
-
-// Gán lại long press gọi PNG
-const originalDownload = window.downloadImage;
-window.downloadImage = function(format) {
-    if (!isLoaded) {
-        alert("Chưa có ảnh để tải!");
-        return;
-    }
-    const quality = parseInt(document.getElementById('jpegQuality').value) / 100;
-    let mimeType = 'image/png';
-    let extension = 'png';
-    if (format === 'jpeg') {
-        mimeType = 'image/jpeg';
-        extension = 'jpg';
-    }
-    const dataURL = canvas.toDataURL(mimeType, quality);
-    const link = document.createElement('a');
-    link.download = `ducthuat_${new Date().getTime()}.${extension}`;
-    link.href = dataURL;
-    link.click();
-};
-
 // ------------------- KÉO THẢ & LONG PRESS -------------------
 function handleDragStart(e) {
     e.preventDefault();
@@ -979,6 +1114,22 @@ canvas.addEventListener('touchcancel', onTouchCancel);
 // Khởi tạo bản đồ
 initMap();
 
+// Khởi tạo ảnh mặc định từ URL nếu chưa có ảnh được upload
+// Để tránh ghi đè lưu cài đặt, ta chỉ tải ảnh mặc định nếu chưa có ảnh nào
+if (!img) {
+    const defaultImageUrl = 'https://i.postimg.cc/Bt1xMVQ8/IMG-2821.jpg';
+    const defaultImg = new Image();
+    defaultImg.crossOrigin = 'Anonymous';
+    defaultImg.onload = function() {
+        img = defaultImg;
+        setupCanvas();
+        loadSettingsAndDraw();
+    };
+    defaultImg.onerror = function() {
+        console.warn('Không thể tải ảnh mặc định');
+    };
+    defaultImg.src = defaultImageUrl;
+}
 })();
 </script>
 </body>
