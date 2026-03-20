@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Đức Thuật Pro - Bản đồ OSM + Vị trí hiện tại (Fix iPhone)</title>
+<title>Đức Thuật Pro - Bản đồ OSM + Tải JPEG chất lượng cao</title>
 <!-- Leaflet CSS + JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Montserrat:wght@400;500;700;800&family=Roboto:wght@400;500;700&family=Bebas+Neue&family=Lato:wght@400;700&display=swap" rel="stylesheet">
 <style>
-body { font-family: 'Inter', sans-serif; background: #111; color: white; text-align: center; padding: 10px; margin: 0; }
+body { font-family: 'Inter', sans-serif; background: #111; color: white; text-align: center; padding: 10px; margin: 0; position: relative; }
 .controls { background: #1e1e1e; border-radius: 16px; padding: 20px; max-width: 900px; margin: 0 auto 15px; border: 1px solid #333; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; justify-content: center; align-items: center; }
 label { color: #f5b400; font-weight: bold; font-size: 14px; min-width: 120px; text-align: left; }
@@ -23,8 +23,30 @@ button:active { transform: scale(0.95); }
 .checkbox-row { display: flex; align-items: center; gap: 10px; background: #252525; padding: 10px 15px; border-radius: 30px; margin: 8px 0; }
 .checkbox-row label { min-width: auto; }
 .color-row { display: flex; align-items: center; gap: 15px; background: #252525; padding: 10px 15px; border-radius: 30px; margin: 8px 0; }
-canvas { max-width: 100%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); touch-action: none; margin-top: 10px; cursor: grab; }
+.canvas-container { position: relative; display: inline-block; max-width: 100%; margin-top: 10px; }
+canvas { max-width: 100%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); touch-action: none; cursor: grab; display: block; margin: 0 auto; }
 canvas:active { cursor: grabbing; }
+.scroll-top-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #f5b400;
+    color: #000;
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+.scroll-top-btn:active { transform: scale(0.9); }
 #map { height: 300px; width: 100%; border-radius: 12px; margin-top: 15px; border: 1px solid #f5b400; z-index: 1; }
 .map-controls { display: flex; gap: 10px; margin-top: 8px; justify-content: flex-end; }
 .map-controls button { background: #0288d1; color: white; padding: 8px 16px; font-size: 14px; }
@@ -34,7 +56,7 @@ canvas:active { cursor: grabbing; }
 <body>
 
 <div class="controls">
-<h3 style="margin:0 0 15px 0; color:#f5b400; letter-spacing: 1px;">TOOL ĐỨC THUẬT PRO (FIX IPHONE)</h3>
+<h3 style="margin:0 0 15px 0; color:#f5b400; letter-spacing: 1px;">TOOL ĐỨC THUẬT PRO (BẢN ĐỒ OSM + TẢI JPEG)</h3>
 
 <div class="row">
     <label>📷 Chọn ảnh nền:</label>
@@ -187,17 +209,22 @@ canvas:active { cursor: grabbing; }
 <div class="slider-row"><label>📏 Cỡ chữ ghi chú dọc:</label><input type="range" id="noteFontSize" min="10" max="30" value="18" step="0.5"></div>
 <div class="slider-row"><label>📐 Padding ghi chú dọc (px):</label><input type="range" id="notePadding" min="0" max="30" value="15" step="0.5"></div>
 <div class="slider-row"><label>🔤 Max ký tự mỗi dòng:</label><input type="range" id="maxLineLength" min="30" max="80" value="50" step="1"></div>
+<div class="slider-row"><label>🖼️ Chất lượng JPEG (1-100):</label><input type="range" id="jpegQuality" min="1" max="100" value="95" step="1"></div>
 
 <div class="row">
     <button onclick="getCurrentPosition()" style="flex:1">📍 LẤY GPS TRÌNH DUYỆT</button>
-    <button onclick="downloadImage()" style="flex:1; background:#2e7d32; color:white;">📥 TẢI ẢNH VỀ</button>
+    <button onclick="downloadImage('png')" style="flex:1; background:#2e7d32; color:white;">📥 TẢI PNG</button>
+    <button onclick="downloadImage('jpeg')" style="flex:1; background:#f57c00; color:white;">🖼️ TẢI JPEG (CAO)</button>
     <button onclick="saveSettings()" style="flex:1; background:#0288d1; color:white;">💾 LƯU CÀI ĐẶT</button>
 </div>
 
 <div id="status">Sẵn sàng! Kéo thả khung chữ bên trái để di chuyển.</div>
 </div>
 
-<canvas id="canvas"></canvas>
+<div class="canvas-container">
+    <canvas id="canvas"></canvas>
+    <button class="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">⬆️</button>
+</div>
 
 <!-- Bản đồ OSM nhúng -->
 <div id="map"></div>
@@ -246,10 +273,10 @@ function fetchWithTimeout(url, options, timeout = 10000) {
     ]);
 }
 
-// Hàm reverse geocoding dùng chung (có xử lý lỗi)
+// Hàm reverse geocoding dùng chung
 async function reverseGeocode(lat, lng) {
     const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
-    const userAgent = navigator.userAgent; // Dùng UA thực tế của trình duyệt
+    const userAgent = navigator.userAgent;
     try {
         const response = await fetchWithTimeout(url, {
             headers: { 'User-Agent': userAgent }
@@ -258,7 +285,7 @@ async function reverseGeocode(lat, lng) {
         if (data && data.display_name) {
             return data.display_name;
         } else {
-            throw new Error('No display_name in response');
+            throw new Error('No display_name');
         }
     } catch (err) {
         console.warn('Reverse geocoding error:', err);
@@ -273,7 +300,6 @@ async function updateMapLocation(lat, lng) {
     if (currentMarker) map.removeLayer(currentMarker);
     currentMarker = L.marker([lat, lng]).addTo(map).bindPopup(`Tọa độ: ${lat}, ${lng}`).openPopup();
 
-    // Lấy địa chỉ
     const address = await reverseGeocode(lat, lng);
     if (address) {
         const wrapped = wrapAddress(address, getMaxLineLength());
@@ -457,10 +483,8 @@ function initMap() {
         const lat = e.latlng.lat.toFixed(6);
         const lng = e.latlng.lng.toFixed(6);
         const coordText = `${lat}, ${lng}`;
-        
         document.getElementById('manualCoord').value = coordText;
         gpsText = coordText;
-        
         if (currentMarker) map.removeLayer(currentMarker);
         currentMarker = L.marker([lat, lng]).addTo(map).bindPopup(`Tọa độ: ${coordText}`).openPopup();
         
@@ -550,6 +574,7 @@ window.saveSettings = function() {
         leftBlockYDp: leftBlockY / scale,
         gpsText: gpsText,
         showGps: document.getElementById('showGpsCheckbox').checked,
+        jpegQuality: parseInt(document.getElementById('jpegQuality').value),
     };
     localStorage.setItem('ducThuậtSettings', JSON.stringify(settings));
     document.getElementById('status').innerText = '✅ Đã lưu cài đặt!';
@@ -597,6 +622,7 @@ function loadSettingsAndDraw() {
         if (s.maxLineLength !== undefined) document.getElementById('maxLineLength').value = s.maxLineLength;
         if (s.gpsText) gpsText = s.gpsText;
         if (s.showGps !== undefined) document.getElementById('showGpsCheckbox').checked = s.showGps;
+        if (s.jpegQuality !== undefined) document.getElementById('jpegQuality').value = s.jpegQuality;
         if (isLoaded && s.leftBlockXDp !== undefined && s.leftBlockYDp !== undefined) {
             leftBlockX = s.leftBlockXDp * scale;
             leftBlockY = s.leftBlockYDp * scale;
@@ -607,7 +633,7 @@ function loadSettingsAndDraw() {
     } catch(e) { console.warn(e); }
 }
 
-// ------------------- VẼ CANVAS (giữ nguyên, chỉ thêm điều kiện hiển thị GPS) -------------------
+// ------------------- VẼ CANVAS (giữ nguyên) -------------------
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!isLoaded || !img) {
@@ -759,7 +785,6 @@ function draw() {
         ctx.fillText('100% Chân thực', logoX, logoYBase);
         ctx.textAlign = 'left';
     }
-    // Hiển thị tọa độ GPS nếu checkbox được chọn
     const showGps = document.getElementById('showGpsCheckbox').checked;
     if (showGps && gpsText) {
         ctx.font = `400 ${20 * scale}px ${fontFamily}`;
@@ -791,6 +816,52 @@ function draw() {
     ctx.shadowOffsetY = 0;
     document.getElementById('status').innerHTML = `Vị trí khối trái: (${Math.round(leftBlockX)}, ${Math.round(leftBlockY)}) | Kéo thả để di chuyển.`;
 }
+
+// ------------------- TẢI ẢNH VỚI ĐỊNH DẠNG PNG HOẶC JPEG -------------------
+window.downloadImage = function(format) {
+    if (!isLoaded) {
+        alert("Chưa có ảnh để tải!");
+        return;
+    }
+    const quality = parseInt(document.getElementById('jpegQuality').value) / 100;
+    let mimeType = 'image/png';
+    let extension = 'png';
+    if (format === 'jpeg') {
+        mimeType = 'image/jpeg';
+        extension = 'jpg';
+    }
+    const dataURL = canvas.toDataURL(mimeType, quality);
+    const link = document.createElement('a');
+    link.download = `ducthuat_${new Date().getTime()}.${extension}`;
+    link.href = dataURL;
+    link.click();
+};
+
+// Long press vẫn dùng PNG (giữ nguyên)
+window.downloadImagePNG = function() {
+    downloadImage('png');
+};
+
+// Gán lại long press gọi PNG
+const originalDownload = window.downloadImage;
+window.downloadImage = function(format) {
+    if (!isLoaded) {
+        alert("Chưa có ảnh để tải!");
+        return;
+    }
+    const quality = parseInt(document.getElementById('jpegQuality').value) / 100;
+    let mimeType = 'image/png';
+    let extension = 'png';
+    if (format === 'jpeg') {
+        mimeType = 'image/jpeg';
+        extension = 'jpg';
+    }
+    const dataURL = canvas.toDataURL(mimeType, quality);
+    const link = document.createElement('a');
+    link.download = `ducthuat_${new Date().getTime()}.${extension}`;
+    link.href = dataURL;
+    link.click();
+};
 
 // ------------------- KÉO THẢ & LONG PRESS -------------------
 function handleDragStart(e) {
@@ -836,7 +907,7 @@ function onTouchStart(e) {
     dragOffsetY = mouseY - leftBlockY;
     isLongPressTriggered = false;
     if (longPressTimer) clearTimeout(longPressTimer);
-    longPressTimer = setTimeout(() => { isLongPressTriggered = true; downloadImage(); }, LONG_PRESS_DELAY);
+    longPressTimer = setTimeout(() => { isLongPressTriggered = true; downloadImage('png'); }, LONG_PRESS_DELAY);
 }
 function onTouchMove(e) {
     if (!isLoaded) return;
@@ -862,13 +933,6 @@ function onTouchEnd(e) {
     if (dragging) { dragging = false; canvas.style.cursor = 'grab'; }
 }
 function onTouchCancel(e) { onTouchEnd(e); }
-window.downloadImage = function() {
-    if (!isLoaded) { alert("Chưa có ảnh để tải!"); return; }
-    const link = document.createElement('a');
-    link.download = 'ducthuat_' + new Date().getTime() + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-};
 
 // ------------------- GẮN SỰ KIỆN -------------------
 document.getElementById('address').addEventListener('input', draw);
@@ -901,6 +965,7 @@ document.getElementById('verticalNote').addEventListener('input', draw);
 document.getElementById('noteFontSize').addEventListener('input', draw);
 document.getElementById('notePadding').addEventListener('input', draw);
 document.getElementById('showGpsCheckbox').addEventListener('change', draw);
+document.getElementById('jpegQuality').addEventListener('input', draw);
 
 canvas.addEventListener('mousedown', handleDragStart);
 canvas.addEventListener('mousemove', handleDragMove);
