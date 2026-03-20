@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Đức Thuật Pro - Bản đồ OSM + Vị trí hiện tại</title>
+<title>Đức Thuật Pro - Ẩn/Hiện tọa độ GPS</title>
 <!-- Leaflet CSS + JS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -34,7 +34,7 @@ canvas:active { cursor: grabbing; }
 <body>
 
 <div class="controls">
-<h3 style="margin:0 0 15px 0; color:#f5b400; letter-spacing: 1px;">TOOL ĐỨC THUẬT PRO (BẢN ĐỒ OSM + VỊ TRÍ HIỆN TẠI)</h3>
+<h3 style="margin:0 0 15px 0; color:#f5b400; letter-spacing: 1px;">TOOL ĐỨC THUẬT PRO (ẨN/HIỆN TỌA ĐỘ GPS)</h3>
 
 <div class="row">
     <label>📷 Chọn ảnh nền:</label>
@@ -57,6 +57,12 @@ canvas:active { cursor: grabbing; }
     <label>📍 Tọa độ GPS:</label>
     <input type="text" id="manualCoord" value="" style="flex:1" placeholder="VD: 12.4519176, 107.6249466">
     <button onclick="applyManualCoord()" style="background:#0288d1;">Áp dụng (thủ công)</button>
+</div>
+
+<!-- Checkbox ẩn/hiện tọa độ -->
+<div class="checkbox-row">
+    <label>👁️ Hiển thị tọa độ GPS:</label>
+    <input type="checkbox" id="showGpsCheckbox" checked>
 </div>
 
 <!-- Thời gian tĩnh -->
@@ -339,7 +345,6 @@ window.getCurrentPosition = function() {
             document.getElementById('manualCoord').value = gpsText; 
             document.getElementById('status').innerText = "Đã lấy GPS: " + gpsText; 
             if (isLoaded) draw();
-            // Cũng cập nhật bản đồ nếu có
             if (map) updateMapLocation(lat, lng);
         },
         (err) => { alert("Không thể lấy vị trí: " + err.message); }
@@ -353,7 +358,6 @@ function updateMapLocation(lat, lng) {
     if (currentMarker) map.removeLayer(currentMarker);
     currentMarker = L.marker([lat, lng]).addTo(map).bindPopup(`Vị trí: ${lat}, ${lng}`).openPopup();
     
-    // Reverse geocoding để lấy địa chỉ
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
         headers: { 'User-Agent': 'DucThuatTool/1.0 (your-email@example.com)' }
     })
@@ -375,7 +379,6 @@ function updateMapLocation(lat, lng) {
     });
 }
 
-// Nút Vị trí hiện tại trên bản đồ
 window.getCurrentLocationOnMap = function() {
     if (!navigator.geolocation) { alert("Trình duyệt không hỗ trợ GPS."); return; }
     navigator.geolocation.getCurrentPosition(
@@ -383,7 +386,6 @@ window.getCurrentLocationOnMap = function() {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             updateMapLocation(lat, lng);
-            // Cập nhật ô tọa độ thủ công
             const coordText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
             document.getElementById('manualCoord').value = coordText;
             gpsText = coordText;
@@ -414,7 +416,6 @@ window.searchMap = function() {
             document.getElementById('address').value = wrappedAddress;
             document.getElementById('status').innerText = "Đã tìm thấy: " + displayName;
             if (isLoaded) draw();
-            // Di chuyển bản đồ đến điểm tìm được
             if (map) updateMapLocation(lat, lng);
         } else { alert('Không tìm thấy địa điểm nào.'); }
     })
@@ -428,21 +429,15 @@ function initMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Xử lý click trên bản đồ
     map.on('click', function(e) {
         const lat = e.latlng.lat.toFixed(6);
         const lng = e.latlng.lng.toFixed(6);
         const coordText = `${lat}, ${lng}`;
-        
-        // Cập nhật ô tọa độ
         document.getElementById('manualCoord').value = coordText;
         gpsText = coordText;
-        
-        // Xóa marker cũ, thêm marker mới
         if (currentMarker) map.removeLayer(currentMarker);
         currentMarker = L.marker([lat, lng]).addTo(map).bindPopup(`Tọa độ: ${coordText}`).openPopup();
         
-        // Reverse geocoding để lấy địa chỉ
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
             headers: { 'User-Agent': 'DucThuatTool/1.0 (your-email@example.com)' }
         })
@@ -538,6 +533,7 @@ window.saveSettings = function() {
         leftBlockXDp: leftBlockX / scale,
         leftBlockYDp: leftBlockY / scale,
         gpsText: gpsText,
+        showGps: document.getElementById('showGpsCheckbox').checked,
     };
     localStorage.setItem('ducThuậtSettings', JSON.stringify(settings));
     document.getElementById('status').innerText = '✅ Đã lưu cài đặt!';
@@ -584,6 +580,7 @@ function loadSettingsAndDraw() {
         if (s.notePadding !== undefined) document.getElementById('notePadding').value = s.notePadding;
         if (s.maxLineLength !== undefined) document.getElementById('maxLineLength').value = s.maxLineLength;
         if (s.gpsText) gpsText = s.gpsText;
+        if (s.showGps !== undefined) document.getElementById('showGpsCheckbox').checked = s.showGps;
         if (isLoaded && s.leftBlockXDp !== undefined && s.leftBlockYDp !== undefined) {
             leftBlockX = s.leftBlockXDp * scale;
             leftBlockY = s.leftBlockYDp * scale;
@@ -594,7 +591,7 @@ function loadSettingsAndDraw() {
     } catch(e) { console.warn(e); }
 }
 
-// ------------------- VẼ CANVAS (GIỮ NGUYÊN) -------------------
+// ------------------- VẼ CANVAS -------------------
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!isLoaded || !img) {
@@ -746,7 +743,9 @@ function draw() {
         ctx.fillText('100% Chân thực', logoX, logoYBase);
         ctx.textAlign = 'left';
     }
-    if (gpsText) {
+    // Hiển thị tọa độ GPS nếu checkbox được chọn
+    const showGps = document.getElementById('showGpsCheckbox').checked;
+    if (showGps && gpsText) {
         ctx.font = `400 ${20 * scale}px ${fontFamily}`;
         ctx.fillStyle = setFillStyleWithOpacity('#A0D8FF', textOpacity);
         ctx.fillText(gpsText, leftBlockX, canvas.height - 10*scale);
@@ -885,6 +884,7 @@ document.getElementById('shadowBlur').addEventListener('input', draw);
 document.getElementById('verticalNote').addEventListener('input', draw);
 document.getElementById('noteFontSize').addEventListener('input', draw);
 document.getElementById('notePadding').addEventListener('input', draw);
+document.getElementById('showGpsCheckbox').addEventListener('change', draw);
 
 canvas.addEventListener('mousedown', handleDragStart);
 canvas.addEventListener('mousemove', handleDragMove);
