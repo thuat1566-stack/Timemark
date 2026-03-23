@@ -404,6 +404,7 @@ canvas:active {
     <button onclick="getCurrentPosition()" style="flex:1">📍 LẤY GPS TRÌNH DUYỆT</button>
     <button onclick="downloadImage('png')" style="flex:1; background:#2e7d32; color:white;">📥 TẢI PNG</button>
     <button onclick="downloadImage('jpeg')" style="flex:1; background:#f57c00; color:white;">🖼️ TẢI JPEG (CAO)</button>
+    <button onclick="shareImage()" style="flex:1; background:#3b5998; color:white;">📲 GỬI ẢNH QUA ZALO</button>
     <button onclick="saveSettings()" style="flex:1; background:#0288d1; color:white;">💾 LƯU CÀI ĐẶT</button>
 </div>
 
@@ -667,7 +668,6 @@ window.getCurrentLocationOnMap = function() {
         (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
-            // Đảm bảo map đã sẵn sàng
             if (!map) {
                 alert("Bản đồ chưa sẵn sàng, vui lòng thử lại sau.");
                 return;
@@ -710,7 +710,7 @@ window.searchMap = async function() {
     }
 };
 
-// ------------------- BẢN ĐỒ OSM (ĐÃ SỬA) -------------------
+// ------------------- BẢN ĐỒ OSM -------------------
 function initMap() {
     const mapContainer = document.getElementById('map');
     if (!mapContainer) return;
@@ -720,7 +720,6 @@ function initMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
     
-    // Đảm bảo hiển thị đúng kích thước
     setTimeout(() => {
         if (map) map.invalidateSize();
     }, 200);
@@ -1063,6 +1062,39 @@ function draw() {
     ctx.shadowOffsetY = 0;
     document.getElementById('status').innerHTML = `Vị trí khối trái: (${Math.round(leftBlockX)}, ${Math.round(leftBlockY)}) | Kéo thả để di chuyển.`;
 }
+
+// ------------------- CHIA SẺ ẢNH QUA WEB SHARE (ZALO...) -------------------
+window.shareImage = async function() {
+    if (!isLoaded) {
+        alert("Chưa có ảnh để chia sẻ!");
+        return;
+    }
+    try {
+        // Chuyển canvas thành blob (file)
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const file = new File([blob], 'timemark.png', { type: 'image/png' });
+        
+        // Kiểm tra Web Share API có hỗ trợ file không
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: '',     // không có tiêu đề
+                text: ''       // không có chú thích
+            });
+            document.getElementById('status').innerHTML = '✅ Đã chia sẻ ảnh thành công!';
+        } else {
+            // Fallback: hướng dẫn tải ảnh về và gửi thủ công
+            alert('Trình duyệt không hỗ trợ chia sẻ trực tiếp. Vui lòng tải ảnh về và gửi thủ công qua Zalo.');
+        }
+    } catch (err) {
+        console.error(err);
+        if (err.message && err.message.includes('canceled')) {
+            document.getElementById('status').innerHTML = '⚠️ Đã hủy chia sẻ.';
+        } else {
+            alert('Không thể chia sẻ ảnh: ' + err.message);
+        }
+    }
+};
 
 window.downloadImage = function(format) {
     if (!isLoaded) {
